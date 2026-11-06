@@ -1,0 +1,34 @@
+# Local Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local app state and newly generated experiments
+.runtime/
+interface_runs/
+new_results/
+*.log
+*.pid
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build products
+build/
+dist/
+*.egg-info/

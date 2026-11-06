@@ -1,0 +1,131 @@
+PENDUBOT MODEL AND CONTROLLERS
+============================
+
+1. Coordinates and force
+
+x = [q1,q2,v1,v2]^T, v1=dq1/dt, v2=dq2/dt.
+q1=0 points downward. q2 is the relative elbow angle, so the absolute
+orientation of link 2 is q1+q2. The elbow is passive.
+
+COM positions (horizontal, vertical upward):
+p_c1 = [lc1 sin(q1), -lc1 cos(q1)]
+p_c2 = [l1 sin(q1)+lc2 sin(q1+q2),
+        -l1 cos(q1)-lc2 cos(q1+q2)]
+
+Kinetic energy:
+T = 1/2 m1 |dp_c1/dt|^2 + 1/2 I1 v1^2
+  + 1/2 m2 |dp_c2/dt|^2 + 1/2 I2 (v1+v2)^2
+  = 1/2 v^T M(q) v.
+
+Potential energy:
+V = -(m1 lc1 + m2 l1) g cos(q1) - m2 lc2 g cos(q1+q2).
+
+The motor acts between ground and link 1, so its virtual work is
+delta W = u delta q1. There is no torque at the elbow and no work term
+proportional to delta q2. Thus the generalized force is [u,0]^T even
+though q2 is relative. The passive elbow still moves through coupling.
+
+2. Equations of motion
+
+Apply d/dt(dL/dv_i) - dL/dq_i = tau_i with L=T-V.
+Let b=m2 l1 lc2, d=I2+m2 lc2^2,
+a=I1+m1 lc1^2+m2 l1^2+d.
+
+M = [[a+2b cos(q2), d+b cos(q2)],
+     [d+b cos(q2), d]]
+c = [-b sin(q2)(2 v1 v2+v2^2), b sin(q2) v1^2]^T
+G = [(m1 lc1+m2 l1)g sin(q1)+m2 lc2 g sin(q1+q2),
+      m2 lc2 g sin(q1+q2)]^T
+
+M(q) ddq + c(q,v) + G(q) = [u,0]^T
+f(x,u) = [v; M(q)^(-1)([u,0]^T-c-G)].
+
+For the specified parameters:
+M11=5/3+cos(q2), M12=M21=1/3+0.5 cos(q2), M22=1/3.
+c1=-0.5 sin(q2)(2v1v2+v2^2), c2=0.5 sin(q2)v1^2.
+G1=14.715 sin(q1)+4.905 sin(q1+q2), G2=4.905 sin(q1+q2).
+
+At rest with zero control all four combinations q1 in {0,pi},
+q2 in {0,pi} are equilibria (and their periodic equivalents).
+The target [pi,0,0,0] is the fully extended upright equilibrium.
+In unforced motion, E=T+V should remain constant. With control, dE/dt=u*v1.
+
+3. Discrete RK4 map
+
+Input u is constant over dt. k1=f(x,u), k2=f(x+dt*k1/2,u),
+k3=f(x+dt*k2/2,u), k4=f(x+dt*k3,u).
+F(x,u)=x+dt*(k1+2k2+2k3+k4)/6.
+JAX differentiates this complete map, including all intermediate RK stages.
+Differentiating only the continuous f and approximating F_x by I+dt*f_x
+would not be the derivative of the optimizer's RK4 map.
+
+4. Cost and full DDP
+
+g(x,u)=dt/2*((x-xgoal)^T Q (x-xgoal)+r*u^2),
+h(xN)=1/2*(xN-xgoal)^T QN (xN-xgoal).
+
+Initialize value derivatives at the final state:
+V_x=QN*(xN-xgoal), V_xx=QN.
+
+At each backward stage, A=F_x, B=F_u, and V derivatives refer to
+the next-stage value evaluated at the nominal next state.
+
+H_x = g_x + A^T V_x
+H_u = g_u + B^T V_x
+H_xx = g_xx + A^T V_xx A + sum_i V_x[i] * F_i,xx
+H_ux = g_ux + B^T V_xx A + sum_i V_x[i] * F_i,ux
+H_uu = g_uu + B^T V_xx B + sum_i V_x[i] * F_i,uu
+
+Here g_x=dt Q (x-xgoal), g_u=dt r u, g_xx=dt Q,
+g_ux=0, g_uu=dt r. These equations are obtained by the second-order
+Taylor expansion of H = g + V_next(F(x+dx,u+du)). The terms involving
+V_x and the Hessians of F are retained in full DDP. iLQR drops exactly
+these terms. Both retain A^T V_xx A and the other first-derivative products.
+
+The one-dimensional control Hessian is regularized:
+H_uu_reg = H_uu + mu, required to be strictly positive.
+k = inv(H_uu_reg) H_u; K = inv(H_uu_reg) H_ux.
+The signs follow the project convention:
+u_new = u_nom - alpha*k - K*(x_new-x_nom).
+
+Substitution of du=-k-K dx into the unregularized quadratic model gives:
+V_x = H_x - K^T H_u - H_ux^T k + K^T H_uu k
+V_xx = H_xx - K^T H_ux - H_ux^T K + K^T H_uu K.
+Symmetrize V_xx to limit roundoff.
+
+Increase mu when the backward pass has an invalid control Hessian or
+the forward line search fails; reduce mu after an accepted step.
+Try alpha = 1,1/2,...,1/128 and accept only a finite, strictly lower cost.
+Stop when relative cost reduction <1e-8 AND max |k| <1e-3 N m,
+or identify a small stationary correction when no improving step exists
+at low regularization. Other termination reasons remain visible in output.
+All final feedback gains are recomputed about the final nominal solution.
+
+5. Execution and upright stabilization
+
+During the 6 s plan, use either u_nom or u_nom-K*(x-x_nom), sampled
+at 0.02 s and held constant during each interval. Validate on the exact
+same RK4 model, then on ten RK4 substeps per sample. This is a numerical
+continuous-dynamics approximation, not an analytic continuous-time solution.
+
+After 6 s, use u=-K_LQR*(x-xgoal), with K_LQR from the discrete Riccati
+equation for A=F_x(xgoal,0), B=F_u(xgoal,0), Q=diag(100,100,10,10),
+R=0.1 (both Q and R scaled by dt). Hold for 5 more seconds.
+LQR is local and may fail when the swing-up misses its capture region.
+
+All optimization errors are unwrapped, preserving the prescribed cost.
+For physical success metrics only, angle errors are wrapped to [-pi,pi).
+Swing-up: each angle error <0.05 rad and each velocity <0.10 rad/s at 6 s.
+Hold: each angle error <0.10 rad and each velocity <0.25 rad/s throughout
+the additional 5 s, including the switching instant.
+
+There is no hard motor torque limit in the supplied problem or this code.
+Peak torque is an outcome to report, not an actuator specification.
+Do not add clipping and assume the same optimized trajectory is feasible.
+
+SOURCE
+User-supplied three-page Project 3 - Pendubot - DDP Vs iLQR.pdf.
+Derivation and numerical implementation prepared from its model definition.
+JAX official documentation:
+https://docs.jax.dev/en/latest/installation.html
+https://docs.jax.dev/en/latest/higher-order.html

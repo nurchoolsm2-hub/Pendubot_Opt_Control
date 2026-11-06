@@ -1,0 +1,63 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Pendubot simulation results</title>
+<style>body{font:16px/1.55 system-ui;margin:40px auto;max-width:1120px;padding:0 24px;color:#152238}
+h1,h2{line-height:1.2}img{max-width:100%}table{border-collapse:collapse;font-size:12px;display:block;overflow:auto}
+th,td{padding:9px;border:1px solid #d8e0ea;text-align:right}th{background:#edf3f9}code{background:#edf3f9;padding:3px}
+.note{padding:18px;background:#edf3f9;border-radius:12px}</style>
+<h1>Pendubot swing-up and stabilization</h1>
+<p>A reproducible numerical simulation using the supplied model, full DDP, iLQR, and sampled local LQR.</p>
+<p class="note">This is an ideal, frictionless, unlimited-torque simulation. Terminal penalties are soft.
+Results below are measured runs, including failed or unconverged attempts. Physical success and optimizer
+convergence are assessed separately. These trials do not establish global convergence or hardware feasibility.</p>
+<h2>Setup and success criteria</h2>
+<p>Uniform links: m1=m2=1 kg, l1=l2=1 m, COM=0.5 m, COM inertia=1/12 kg m², g=9.81 m/s².
+q1 is measured from downward vertical; q2 is relative to link 1. Initial state [0,0,0,0], target [pi,0,0,0].
+Horizon 6 s; RK4 step 0.02 s. Q=diag(1,1,0.1,0.1), QN=diag(2000,2000,200,200), r=0.01.
+The long horizon permits swing-up; moderate running state penalties favor approaching upright, strong terminal
+weights reduce arrival error, and a positive torque penalty discourages excessive actuation.</p>
+<p>Swing-up succeeds if each angle error at 6 s is below 0.05 rad and each velocity below 0.10 rad/s.
+Holding succeeds if each angle stays below 0.10 rad and each velocity below 0.25 rad/s for the full additional
+5 s. Angle errors for physical success are reduced modulo 2pi; optimization uses unwrapped angles as specified.
+No random inputs: zero and 4 sin(pi t) N m initial controls are deterministic.</p>
+<h2>Model and algorithm verification</h2><table><tr><th>equilibrium max residual</th><th>mass matrix min eigenvalue</th><th>energy drift coarse joule</th><th>energy drift fine joule</th><th>jacobian fd max error</th><th>hessian fd max error</th></tr><tr><td>3.60414e-15</td><td>0.0662791</td><td>2.04955e-05</td><td>2.85873e-10</td><td>6.21406e-12</td><td>4.86191e-10</td></tr></table>
+<p>Energy drift is the maximum absolute change over a 10 s unforced trajectory starting at [0.5,-0.3,0.2,-0.1].
+Finite differences independently check the first and second derivatives of the complete discrete RK4 map.
+Only decreasing-cost forward rollouts are accepted.</p>
+    <h2>DDP versus iLQR</h2><table><tr><th>method</th><th>start</th><th>cost</th><th>iterations</th><th>seconds excluding compile</th><th>status</th><th>terminal error norm</th><th>terminal angle error rad</th><th>terminal velocity error rad s</th><th>peak torque nm</th><th>swing success</th></tr><tr><td>ddp</td><td>zero</td><td>5.17531</td><td>698</td><td>4.13223</td><td>converged</td><td>1.87746e-07</td><td>4.10335e-08</td><td>1.6662e-07</td><td>26.9693</td><td>True</td></tr><tr><td>ilqr</td><td>zero</td><td>5.17531</td><td>594</td><td>0.954477</td><td>converged</td><td>1.867e-07</td><td>4.0938e-08</td><td>1.65642e-07</td><td>26.9685</td><td>True</td></tr><tr><td>ddp</td><td>sine</td><td>5.17531</td><td>621</td><td>3.48821</td><td>converged</td><td>1.86679e-07</td><td>4.09346e-08</td><td>1.65622e-07</td><td>26.9693</td><td>True</td></tr><tr><td>ilqr</td><td>sine</td><td>5.17531</td><td>491</td><td>0.726046</td><td>converged</td><td>1.86701e-07</td><td>4.09381e-08</td><td>1.65643e-07</td><td>26.9685</td><td>True</td></tr></table>
+<p>Both methods use identical costs, initial controls, horizon and stopping tolerances. Timings exclude explicit
+kernel warmup and include derivative evaluation, iteration, and final gain recomputation. Timing is one run per
+case on this computer, not a repeated benchmark. First-order JAX startup may still affect timings.</p>
+<p>One-time shared kernel warmup: 2.036 s. Relative reduction tolerance 1e-8; maximum unscaled feedforward
+correction tolerance 1e-3 N m; both required for ordinary convergence. Maximum 1500 iterations. A stationary status
+means no improving step and a small correction at low regularization. The best-cost DDP trial is selected for
+execution: <strong>ddp_sine</strong>. See comparison status before treating a trial as converged.</p>
+<p>For the zero start, DDP reached J=5.175306 in 698 iterations (4.13 s); iLQR reached J=5.175306 in 594 iterations (0.95 s). For the sine start, DDP reached J=5.175306 in 621 iterations (3.49 s); iLQR reached J=5.175306 in 491 iterations (0.73 s). The additional dynamics curvature did not improve the final objective in these runs, and full DDP required more iterations and computation. This is an experimental observation for these settings, not a general ordering of the two methods.</p>
+<img src="convergence.png" alt="DDP and iLQR convergence"><img src="trajectory.png" alt="State and torque histories">
+<h2>Unsuccessful short-budget optimization attempts</h2>
+<p>The table below records the same deterministic runs at 300 accepted iterations. This reproduces an
+unsuccessful convergence attempt with a 300-iteration budget: none met both stopping tolerances then.
+This is a failure of the convergence test, separate from the question of physically reaching upright.
+Allowing more iterations resolved these cases. Intermediate costs alone should not be used to rank final solutions.</p><table><tr><th>method</th><th>start</th><th>iteration budget</th><th>cost</th><th>relative drop</th><th>correction</th><th>converged</th></tr><tr><td>ddp</td><td>zero</td><td>300</td><td>19.8885</td><td>0.00236881</td><td>0.598411</td><td>False</td></tr><tr><td>ilqr</td><td>zero</td><td>300</td><td>10.5155</td><td>1.37161e-05</td><td>0.258586</td><td>False</td></tr><tr><td>ddp</td><td>sine</td><td>300</td><td>16.8115</td><td>0.00100328</td><td>0.156948</td><td>False</td></tr><tr><td>ilqr</td><td>sine</td><td>300</td><td>10.4894</td><td>3.52613e-05</td><td>0.444486</td><td>False</td></tr></table>
+<h2>Execution and disturbances</h2>
+<p>Coarse execution uses the optimizer's RK4 model. Fine execution uses ten RK4 substeps per sample (0.002 s),
+holding each control fixed throughout the 0.02 s interval. Feedback uses final nominal trajectory gains.
+The initial offset is [0.03,-0.02,0,0]; the separate velocity kick at 3 s is [0,0,0.15,-0.10].
+All policies switch at 6 s to the same local discrete LQR: QLQR=diag(100,100,10,10), RLQR=0.1.</p>
+<p>Open-loop nominal replay maximum state difference: 0. LQR closed-loop spectral radius: 0.946551.
+A stable linearization alone does not prove nonlinear recovery from large disturbances.</p><table><tr><th>case</th><th>policy</th><th>integration</th><th>finite</th><th>arrival angle error rad</th><th>arrival velocity error rad s</th><th>hold max angle error rad</th><th>hold max velocity rad s</th><th>final state error norm</th><th>observed peak torque nm</th><th>termination time s</th><th>swing success</th><th>hold success</th></tr><tr><td>nominal</td><td>open_loop</td><td>RK4_dt</td><td>True</td><td>4.09346e-08</td><td>1.65622e-07</td><td>6.57592e-08</td><td>2.86683e-07</td><td>3.08234e-12</td><td>26.9693</td><td>Unavailable</td><td>True</td><td>True</td></tr><tr><td>nominal</td><td>feedback</td><td>RK4_dt</td><td>True</td><td>4.09346e-08</td><td>1.65622e-07</td><td>6.57592e-08</td><td>2.86683e-07</td><td>3.08234e-12</td><td>26.9693</td><td>Unavailable</td><td>True</td><td>True</td></tr><tr><td>initial_offset</td><td>open_loop</td><td>RK4_dt</td><td>False</td><td>1.95733</td><td>15.9903</td><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td><td>9076.75</td><td>6.06</td><td>False</td><td>False</td></tr><tr><td>initial_offset</td><td>feedback</td><td>RK4_dt</td><td>True</td><td>4.00475e-08</td><td>1.62e-07</td><td>6.42999e-08</td><td>2.80359e-07</td><td>3.01074e-12</td><td>27.2769</td><td>Unavailable</td><td>True</td><td>True</td></tr><tr><td>velocity_kick</td><td>open_loop</td><td>RK4_dt</td><td>False</td><td>2.34153</td><td>5.97871</td><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td><td>211566</td><td>6.12</td><td>False</td><td>False</td></tr><tr><td>velocity_kick</td><td>feedback</td><td>RK4_dt</td><td>True</td><td>1.11893e-05</td><td>4.3694e-05</td><td>1.63233e-05</td><td>7.29602e-05</td><td>7.52771e-10</td><td>26.9693</td><td>Unavailable</td><td>True</td><td>True</td></tr><tr><td>nominal</td><td>open_loop</td><td>RK4_dt/10</td><td>False</td><td>2.39316</td><td>9.65298</td><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td><td>34681.7</td><td>6.14</td><td>False</td><td>False</td></tr><tr><td>nominal</td><td>feedback</td><td>RK4_dt/10</td><td>True</td><td>4.09435e-08</td><td>1.65703e-07</td><td>6.57872e-08</td><td>2.86799e-07</td><td>3.08172e-12</td><td>26.9693</td><td>Unavailable</td><td>True</td><td>True</td></tr><tr><td>initial_offset</td><td>open_loop</td><td>RK4_dt/10</td><td>False</td><td>1.93245</td><td>11.6759</td><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td><td>46115.8</td><td>6.2</td><td>False</td><td>False</td></tr><tr><td>initial_offset</td><td>feedback</td><td>RK4_dt/10</td><td>True</td><td>4.00542e-08</td><td>1.62071e-07</td><td>6.43242e-08</td><td>2.80459e-07</td><td>3.01582e-12</td><td>27.2769</td><td>Unavailable</td><td>True</td><td>True</td></tr><tr><td>velocity_kick</td><td>open_loop</td><td>RK4_dt/10</td><td>False</td><td>2.67636</td><td>6.39767</td><td>Unavailable</td><td>Unavailable</td><td>Unavailable</td><td>64693.2</td><td>6.14</td><td>False</td><td>False</td></tr><tr><td>velocity_kick</td><td>feedback</td><td>RK4_dt/10</td><td>True</td><td>1.11892e-05</td><td>4.37039e-05</td><td>1.63261e-05</td><td>7.29712e-05</td><td>7.53008e-10</td><td>26.9693</td><td>Unavailable</td><td>True</td><td>True</td></tr></table>
+<p>In the fine-integration experiments, saved open-loop torques lose upright tracking even without an added
+disturbance. Small integration differences are amplified near the unstable equilibrium. Trajectory feedback
+passes the arrival and holding criteria for the nominal case and both stated disturbances. These are specific
+finite-amplitude tests, not a general robustness guarantee.</p>
+<p>Failed open-loop executions are terminated if states become non-finite or their magnitude exceeds 1e5;
+the subsequent samples are unavailable. Holding maxima and final errors are unavailable for terminated runs.
+Very large observed torques in those failed runs occur after applying local LQR outside its capture region;
+they indicate failure and numerical breakdown, not a reliable physical actuator requirement.</p>
+<img src="robustness.png" alt="Open loop versus feedback under disturbances">
+<h2>Animation</h2><p>Selected nominal DDP trajectory executed using finer integration and feedback, then 5 s of LQR.</p>
+<img src="swingup.gif" alt="Pendubot swing-up and local stabilization" width="640">
+<h2>Reproduce and inspect</h2><p>Run <code>python run_simulation.py</code> after installing requirements.txt.
+Equations and DDP recursion are in DERIVATION.txt; source is in pendubot.py and run_simulation.py.
+CSV files contain comparison tables and convergence data; NPZ files contain trajectories, controls and gains.
+Full parameters, versions, checks and metrics are in summary.json. Values use SI units.</p>
+<p>Sources: the user-supplied project PDF (three pages); <a href="https://docs.jax.dev/en/latest/installation.html">JAX installation</a>;
+<a href="https://docs.jax.dev/en/latest/higher-order.html">JAX higher-order derivatives</a>.</p></html>

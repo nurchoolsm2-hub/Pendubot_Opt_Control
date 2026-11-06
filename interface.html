@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-token" content="__TOKEN__"><title>Pendubot Control Lab</title><link rel="stylesheet" href="/interface.css"></head>
+<body>
+<header><div class="brand"><span class="mark">◉</span><div><h1>Pendubot <span>Control Lab</span></h1><p>Swing up. Stabilize. Explore.</p></div></div><span class="local"><i></i> Running on your computer</span></header>
+<main>
+<aside>
+<div class="panel-head"><div><p class="eyebrow">EXPERIMENT SETTINGS</p><h2>Change the parameters</h2></div><button id="reset" class="quiet">Reset</button></div>
+<p class="intro">Edit a value, then run the simulation to compute a new trajectory.</p>
+<form id="parameters"><div id="groups"></div></form>
+<div class="run-area"><p id="dirty">Project defaults · ready to run</p><button id="run" form="parameters" type="submit" class="primary">▶ &nbsp; Run simulation</button><p class="footnote">Ideal joints · no friction · no hard torque limit</p></div>
+</aside>
+<section class="workspace">
+<div class="workspace-head"><div><p class="eyebrow">ROBOT SIMULATION</p><h2>Swing-up &amp; upright hold</h2></div><span id="example" class="badge">Verified example</span></div>
+<div id="notice" role="status" aria-live="polite">Loading the verified example…</div>
+<div class="stage"><canvas id="robot" width="1000" height="520" aria-label="Pendubot animation"></canvas><div class="stage-top"><span id="phase">Trajectory feedback</span><span id="clock">0.00 s</span></div><div class="stage-bottom"><span><i class="blue"></i> Link 1 · actuated base</span><span><i class="orange"></i> Link 2 · passive elbow</span><span>Dashed outline: upright target</span></div></div>
+<div class="playback"><button id="play" aria-label="Play or pause animation">▶ Play</button><button id="restart" aria-label="Restart animation">↺</button><input id="timeline" aria-label="Simulation time" type="range" min="0" max="100" value="0" step="1"><label for="speed">Speed</label><select id="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></div>
+<div class="metrics"><div><p>Objective</p><strong id="objective">—</strong><small id="optimizer">—</small></div><div><p>Peak execution torque</p><strong id="torque">—</strong><small>Includes upright hold</small></div><div><p>Swing-up</p><strong id="swing">—</strong><small>Angles &lt; 0.05 rad; speeds &lt; 0.10 rad/s</small></div><div><p>Upright hold</p><strong id="hold">—</strong><small>Angles &lt; 0.10 rad; speeds &lt; 0.25 rad/s</small></div></div>
+<div class="chart-panel"><div class="chart-title"><h3>Motion &amp; motor effort</h3><span id="state-values">q1 = 0.000 · q2 = 0.000 rad</span></div><canvas id="charts" width="1000" height="260" aria-label="Angle and torque histories"></canvas><p class="chart-note">Solid: executed motion. Faint lines: planned angles. Dashed vertical line: switch to local LQR.</p></div>
+<div class="comparison-panel"><div class="chart-title"><h3>Optimization results</h3><button id="export" class="quiet">Save run data</button></div><div class="table-scroll"><table><thead><tr><th>Method</th><th>Objective</th><th>Iterations</th><th>Time*</th><th>Status</th><th>Terminal error**</th></tr></thead><tbody id="comparison"></tbody></table></div><p class="chart-note">* Optimization time after warmup. ** Norm of the four-state error in the planned trajectory.</p><p id="run-description" class="description"></p></div>
+</section>
+</main><script src="/interface.js"></script></body></html>
