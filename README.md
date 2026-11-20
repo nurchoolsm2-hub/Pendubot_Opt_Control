@@ -112,6 +112,8 @@ These are finite numerical experiments for the included settings, not a global c
 
 The 30-page technical guide was updated on 20 November 2026 with labeled Pendubot illustrations, fully worked Euler-Lagrange derivatives and substitutions for both joints, the origins of every M, c and G term, algebraic elimination of the coupled accelerations, construction of the continuous-time state model, and the current convergence dashboard, launchers, notebooks, and parameter-editing workflow. The detailed motion chapter is on pages 4-9. Its source snapshot and hashes are recorded in the guide; line numbers may move after later edits. The original course assignment is referenced in the documentation and is not included in this repository.
 
+The guide uses a formal academic layout with 11-point Times New Roman body text, serif mathematical notation, numbered sections and equations, consistent table and figure captions, and PDF navigation bookmarks. Code excerpts retain a monospace font for readability. The offline HTML guide follows the same typographic style.
+
 ## Generated files
 
 The Python environment, runtime logs, caches, and personal interface runs are excluded by `.gitignore`. The small reference results in `results/` are included so the interface can show a verified example immediately after installation.
