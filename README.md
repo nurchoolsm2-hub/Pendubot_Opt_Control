@@ -110,7 +110,7 @@ These are finite numerical experiments for the included settings, not a global c
 | `requirements.txt` | Compatible dependency ranges |
 | `requirements-lock.txt` | Exact versions used in the saved Windows Python 3.14 benchmark |
 
-The PDF describes a source snapshot; line numbers may move after later edits. The original course assignment is referenced in the documentation and is not included in this repository.
+The 24-page technical guide was updated on 20 November 2026 for the current convergence dashboard, direct Python launchers, Jupyter notebooks, and parameter-editing workflow. Its source snapshot and hashes are recorded in the guide; line numbers may move after later edits. The original course assignment is referenced in the documentation and is not included in this repository.
 
 ## Generated files
 
