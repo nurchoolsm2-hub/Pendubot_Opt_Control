@@ -110,7 +110,7 @@ These are finite numerical experiments for the included settings, not a global c
 | `requirements.txt` | Compatible dependency ranges |
 | `requirements-lock.txt` | Exact versions used in the saved Windows Python 3.14 benchmark |
 
-The 27-page technical guide was updated on 20 November 2026 with labeled Pendubot illustrations, step-by-step Euler-Lagrange derivations for both joints, construction of the continuous-time state model, and the current convergence dashboard, direct Python launchers, Jupyter notebooks, and parameter-editing workflow. Its source snapshot and hashes are recorded in the guide; line numbers may move after later edits. The original course assignment is referenced in the documentation and is not included in this repository.
+The 30-page technical guide was updated on 20 November 2026 with labeled Pendubot illustrations, fully worked Euler-Lagrange derivatives and substitutions for both joints, the origins of every M, c and G term, algebraic elimination of the coupled accelerations, construction of the continuous-time state model, and the current convergence dashboard, launchers, notebooks, and parameter-editing workflow. The detailed motion chapter is on pages 4-9. Its source snapshot and hashes are recorded in the guide; line numbers may move after later edits. The original course assignment is referenced in the documentation and is not included in this repository.
 
 ## Generated files
 
