@@ -1,5 +1,6 @@
 """Local-only parameter editor and real JAX simulation service."""
 import argparse
+import csv
 from dataclasses import asdict
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -215,7 +216,10 @@ def load_example():
     execution = np.load(ROOT/'results'/'execution_nominal_feedback_fine.npz')
     row = next(r for r in summary['comparison'] if r['method']=='ddp' and r['start']=='sine')
     run = next(r for r in summary['execution'] if r['case']=='nominal' and r['policy']=='feedback' and r['integration']=='RK4_dt/10')
-    return dict(settings=DEFAULTS,selected='ddp',example=True,config=summary['config'],history={},
+    with (ROOT/'results'/'ddp_sine_convergence.csv').open(newline='',encoding='utf-8') as stream:
+        reference_history = [dict(iteration=int(row['iteration']),cost=float(row['cost']))
+                             for row in csv.DictReader(stream)]
+    return dict(settings=DEFAULTS,selected='ddp',example=True,config=summary['config'],history={'ddp':reference_history},
                 nominal_x=nominal['x'].tolist(),nominal_u=nominal['u'][:,0].tolist(),
                 comparison=[dict(method='ddp',cost=row['cost'],iterations=row['iterations'],
                                  seconds=row['seconds_excluding_compile'],status=row['status'],

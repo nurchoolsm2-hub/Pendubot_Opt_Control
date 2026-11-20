@@ -4,6 +4,8 @@ PENDUBOT SIMULATION - START HERE
 INTERACTIVE INTERFACE (WINDOWS)
 Run Install Pendubot.cmd once to create this folder's .venv environment.
 Double-click "Launch Pendubot.cmd" to open the local browser interface.
+The .cmd launchers start Python directly; PowerShell scripts are not needed.
+No Windows execution-policy change is required.
 On another computer, run "Install Pendubot.cmd" first (Python 3.12+).
 The launcher also checks setup automatically. No account or GPU is needed.
 
@@ -24,6 +26,9 @@ Solver tolerances: relative objective and feedforward correction tolerances.
 Click "Run simulation" to apply changes and recompute. While settings are
 changed or a run is busy, the animation still shows the previous result.
 Use Play, Restart, the time slider and playback speed to inspect motion.
+The Optimizer convergence panel plots objective versus accepted iteration.
+Choose logarithmic or linear objective scale. Select Compare both before
+running to overlay full DDP and iLQR; the plot updates after the run finishes.
 Use "Save run data" to export the current settings, trajectories and metrics.
 Completed runs are also saved in interface_runs/ and the last one reloads.
 Robot and controller settings may cause failures; success is measured in
@@ -91,3 +96,11 @@ Suggested learning sequence
 
 This package is a working foundation for your simulation and understanding.
 Review, explain, and adapt it before using it as coursework.
+
+Jupyter code walkthroughs
+Three executed notebooks with equations, code explanations, and experiments
+are in notebooks/. See notebooks/README.txt for Windows and Ubuntu steps.
+Install support: .venv\Scripts\python.exe -m pip install -r requirements-notebooks.txt
+Open: .venv\Scripts\python.exe -m jupyterlab notebooks
+
+The 10-slide presentation is in docs/Pendubot Presentation.pptx.

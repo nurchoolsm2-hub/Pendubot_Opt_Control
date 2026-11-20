@@ -14,6 +14,8 @@ Install Python 3.12 or newer. Clone or download this repository, then:
 
 The first installation needs an internet connection. No GPU or account is needed to run the simulation locally. A changed model may require JAX to compile again before the optimization starts.
 
+The Windows `.cmd` launchers now invoke Python directly. They do not require PowerShell scripts or a change to the Windows execution policy.
+
 ## Start from a terminal
 
 Windows PowerShell:
@@ -47,6 +49,8 @@ Expand the sections in the left panel, edit a value, then click **Run simulation
 | Solver tolerances | Relative cost reduction and feedforward correction tolerances |
 
 Changes require a new optimization; playback controls only change how an existing result is viewed. Saved interface runs are written to `interface_runs/`, which is ignored by Git.
+
+The dashboard also plots **objective value versus accepted optimizer iteration**. Switch between logarithmic and linear scales. **Compare both** overlays DDP and iLQR histories with their final objective values and step counts. The convergence chart updates after each completed run and remains separate from the motion playback timeline.
 
 ## Robot and control problem
 
@@ -83,8 +87,15 @@ These are finite numerical experiments for the included settings, not a global c
 
 ## Technical documentation and code map
 
+- [Jupyter notebooks and opening instructions](notebooks/README.txt) — executable walkthroughs with explanations, equations, and saved outputs:
+  1. [Robot dynamics and numerics](notebooks/01_Robot_Dynamics_and_Numerics.ipynb)
+  2. [DDP and iLQR code walkthrough](notebooks/02_DDP_and_iLQR_Code_Walkthrough.ipynb)
+  3. [Feedback, results, and dashboard](notebooks/03_Feedback_Results_and_Dashboard.ipynb)
+- Install notebook support with `python -m pip install -r requirements-notebooks.txt`, then run `python -m jupyterlab notebooks` using your project environment.
 - [Technical guide and Python explanation (PDF)](docs/Pendubot%20Technical%20Guide%20and%20Python%20Explanation.pdf)
 - [Offline browser guide with copyable code](docs/Pendubot%20Technical%20Guide%20and%20Python%20Explanation.html)
+- [10-slide Pendubot presentation](docs/Pendubot%20Presentation.pptx) — mechanics, dynamics, DDP, iLQR, upright LQR, convergence and disturbance results, with speaker notes.
+- [Updated simulation dashboard screenshot](docs/images/pendubot-convergence-dashboard.jpg)
 - [Equations and DDP recursion](DERIVATION.txt)
 
 | File | Purpose |
@@ -92,8 +103,10 @@ These are finite numerical experiments for the included settings, not a global c
 | `pendubot.py` | Dynamics, RK4, derivatives, full DDP and iLQR solver |
 | `run_simulation.py` | Physics checks, batch comparisons, upright LQR, plots, animation and report |
 | `interface.py` | Local HTTP service, parameter validation, optimization jobs and execution |
+| `launcher.py` | Direct Python installer and launcher; starts or reconnects to the local app |
 | `interface.html`, `interface.js`, `interface.css` | Parameter controls, animation, charts and playback |
 | `test_interface.py` | Regression checks for parameter handling and backward-pass compatibility |
+| `test_launcher.py` | Checks startup, reconnecting, port conflicts and browser-opening failure |
 | `requirements.txt` | Compatible dependency ranges |
 | `requirements-lock.txt` | Exact versions used in the saved Windows Python 3.14 benchmark |
 

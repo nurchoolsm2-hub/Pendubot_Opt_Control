@@ -91,7 +91,85 @@ function show(result) {
     `Physical success uses angle errors modulo 2π. ${data.execution.terminated?'Execution was stopped after numerical divergence. ':''}`+
     (data.comparison.length>1?`Both optimizers used identical settings and the same initial guess; the lower-cost ${data.selected.toUpperCase()} solution is animated.`:'');
   $('timeline').max=data.execution.x.length-1;$('timeline').value=0;
+  drawConvergence();
   draw();
+}
+function drawConvergence() {
+  const canvas=$('convergence'),c=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
+  c.clearRect(0,0,w,h);
+  $('convergence-legend').replaceChildren();
+  const series=(data?.comparison||[]).map(row=>({
+    method:row.method,
+    label:row.method==='ddp'?'Full DDP':'iLQR',
+    color:row.method==='ddp'?'#0f817a':'#df8b45',
+    points:(data.history?.[row.method]||[])
+      .filter(point=>point.iteration!=null&&point.cost!=null)
+      .map(point=>({iteration:Number(point.iteration),cost:Number(point.cost)}))
+      .filter(point=>Number.isFinite(point.iteration)&&point.iteration>=1&&Number.isFinite(point.cost))
+      .sort((a,b)=>a.iteration-b.iteration)
+  })).filter(line=>line.points.length);
+  canvas.dataset.seriesCount=series.length;
+  canvas.dataset.pointCount=series.reduce((total,line)=>total+line.points.length,0);
+  if(!series.length) {
+    c.fillStyle='#7b909c';c.font='15px Segoe UI';c.textAlign='center';
+    c.fillText('No convergence history was saved for this run.',w/2,h/2-10);
+    c.fillText('Click Run simulation to generate the plot.',w/2,h/2+16);
+    $('convergence-summary').textContent='The previous run has no saved objective history. No curve is inferred from the final objective.';
+    canvas.setAttribute('aria-label','No saved convergence history. Run the simulation to generate objective versus iteration data.');
+    return;
+  }
+  let minimum=Infinity,maximum=-Infinity,maxIteration=1;
+  series.forEach(line=>line.points.forEach(point=>{
+    minimum=Math.min(minimum,point.cost);maximum=Math.max(maximum,point.cost);
+    maxIteration=Math.max(maxIteration,point.iteration);
+  }));
+  const requestedLog=$('convergence-scale').value==='log',log=requestedLog&&minimum>0;
+  let low,high;
+  if(log) {
+    low=Math.floor(Math.log10(minimum));high=Math.ceil(Math.log10(maximum));
+    if(high===low){low-=.5;high+=.5;}
+  } else {
+    low=Math.min(0,minimum);high=Math.max(0,maximum);
+    if(high===low){low-=.5;high+=.5;}
+    const padding=(high-low)*.06;high+=padding;if(low<0)low-=padding;
+  }
+  const left=94,right=w-24,top=35,bottom=h-58;
+  const tx=iteration=>left+(right-left)*iteration/Math.max(1,maxIteration);
+  const ty=cost=>bottom-((log?Math.log10(cost):cost)-low)/(high-low)*(bottom-top);
+  const formatTick=value=>Math.abs(value)>=10000||(Math.abs(value)>0&&Math.abs(value)<.01)?value.toExponential(1):pretty(value,2);
+  c.font='12px Segoe UI';c.fillStyle='#647d8b';c.textAlign='left';
+  c.fillText(log?'Objective J (log scale)':'Objective J',left,16);
+  const ticks=log?Math.min(6,Math.max(1,Math.ceil(high-low))):5;
+  for(let i=0;i<=ticks;i++) {
+    const level=low+(high-low)*i/ticks,cost=log?10**level:level,y=ty(cost);
+    c.strokeStyle='#e5edf1';c.lineWidth=1;c.beginPath();c.moveTo(left,y);c.lineTo(right,y);c.stroke();
+    c.fillStyle='#768c99';c.textAlign='right';c.fillText(formatTick(cost),left-12,y+4);
+  }
+  const xTicks=Math.min(5,maxIteration);
+  for(let i=0;i<=xTicks;i++) {
+    const iteration=Math.round(maxIteration*i/xTicks),x=tx(iteration);
+    c.strokeStyle='#eef3f5';c.beginPath();c.moveTo(x,top);c.lineTo(x,bottom);c.stroke();
+    c.fillStyle='#768c99';c.textAlign='center';c.fillText(String(iteration),x,bottom+23);
+  }
+  c.fillStyle='#647d8b';c.textAlign='center';c.fillText('Accepted optimizer iteration',left+(right-left)/2,h-9);
+  c.save();c.beginPath();c.rect(left,top,right-left,bottom-top);c.clip();
+  series.forEach(line=>{
+    c.strokeStyle=line.color;c.lineWidth=2.5;c.lineJoin='round';c.beginPath();
+    line.points.forEach((point,i)=>i?c.lineTo(tx(point.iteration),ty(point.cost)):c.moveTo(tx(point.iteration),ty(point.cost)));
+    c.stroke();
+    const final=line.points.at(-1);c.fillStyle=line.color;c.beginPath();c.arc(tx(final.iteration),ty(final.cost),4,0,Math.PI*2);c.fill();
+    const item=document.createElement('span'),swatch=document.createElement('i');
+    swatch.style.backgroundColor=line.color;item.append(swatch,document.createTextNode(`${line.label} · ${line.points.length} steps · final J ${pretty(final.cost,6)}`));
+    $('convergence-legend').append(item);
+  });
+  c.restore();
+  const missing=(data.comparison||[]).filter(row=>!series.some(line=>line.method===row.method));
+  $('convergence-summary').textContent=series.map(line=>{
+    const first=line.points[0],final=line.points.at(-1);
+    return `${line.label}: J ${pretty(first.cost,5)} at the first accepted step → ${pretty(final.cost,6)} at iteration ${final.iteration}.`;
+  }).join(' ')+(requestedLog&&!log?' Linear scale is shown because at least one objective is zero or negative.':'')+
+    (missing.length?' Some methods have no saved history; run Compare both again to generate both curves.':'');
+  canvas.setAttribute('aria-label',`Optimizer convergence: objective J versus accepted iteration. ${series.map(line=>`${line.label}, ${line.points.length} points, final objective ${line.points.at(-1).cost}`).join('. ')}`);
 }
 function drawRobot(index) {
   const canvas=$('robot'),c=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
@@ -166,5 +244,6 @@ $('reset').onclick=()=>{apply(schema.defaults);markDirty();};
 $('play').onclick=()=>{if(!data)return;const end=(data.execution.x.length-1)*data.settings.dt;if(seconds>=end)seconds=0;playing=!playing;$('play').textContent=playing?'Ⅱ Pause':'▶ Play';};
 $('restart').onclick=()=>{seconds=0;draw();};
 $('timeline').oninput=()=>{if(!data)return;seconds=Number($('timeline').value)*data.settings.dt;draw();};
+$('convergence-scale').onchange=drawConvergence;
 $('export').onclick=()=>{if(!data)return;const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='pendubot-run.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 (async()=>{try{schema=await (await fetch('/api/schema')).json();buildForm();const result=await (await fetch('/api/result')).json();show(result);apply(result?.settings||schema.defaults);notice(result?.example?'Verified default run loaded. Press Play, or change the parameters and run a new experiment.':'Your last completed run is loaded. Change the parameters to explore another experiment.');poll();requestAnimationFrame(animate);}catch(error){notice('Could not load the simulation. Reopen Launch Pendubot.cmd.','error');}})();
