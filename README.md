@@ -94,7 +94,7 @@ These are finite numerical experiments for the included settings, not a global c
 - Install notebook support with `python -m pip install -r requirements-notebooks.txt`, then run `python -m jupyterlab notebooks` using your project environment.
 - [Technical guide and Python explanation (PDF)](docs/Pendubot%20Technical%20Guide%20and%20Python%20Explanation.pdf)
 - [Offline browser guide with copyable code](docs/Pendubot%20Technical%20Guide%20and%20Python%20Explanation.html)
-- [15-slide formal Pendubot presentation](docs/Pendubot%20Presentation.pptx) — energy-based equations of motion, continuous-time state construction, optimal control objective, full DDP, iLQR, upright LQR, and editable result charts, with detailed speaker notes.
+- [15-slide formal Pendubot presentation](docs/Pendubot%20Presentation.pptx) — energy-based equations of motion, continuous-time state construction, optimal control objective, full DDP, iLQR, upright LQR, and editable result charts, with detailed speaker notes and subtle navy and burgundy margin ornaments.
 - [Updated simulation dashboard screenshot](docs/images/pendubot-convergence-dashboard.jpg)
 - [Equations and DDP recursion](DERIVATION.txt)
 

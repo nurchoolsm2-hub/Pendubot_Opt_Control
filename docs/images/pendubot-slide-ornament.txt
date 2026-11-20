@@ -1,0 +1,8 @@
+Presentation ornament asset
+
+Asset: pendubot-slide-ornament.png
+Created with: built-in image generation, transparent background.
+Purpose: subtle decorative margin overlay for the formal Pendubot presentation.
+
+Generation prompt:
+Use case: productivity-visual. Create ONE extremely restrained decorative overlay for a formal engineering PowerPoint presentation, landscape 16:9, 1536 by 864 or equivalent. This is a background ornament, not a complete slide. Background MUST be genuinely transparent. Keep the entire central area completely transparent and empty. Confine the decoration to the extreme outer margins only: a very thin straight deep navy (#18354D) horizontal rule near the top at 3% height, spanning 5% to 95% width; a short muted burgundy (#803445) vertical accent at 2.5% width from 6% to 12% height; a thin light blue-gray bottom rule at 98% height; and a small angular navy and burgundy folded-corner accent confined to the bottom-right final 3% of canvas width and final 5% of canvas height. Add only two faint, delicate concentric quarter-circle arcs tucked into the extreme upper-right corner, confined to the outermost 3% of width, using pale blue-gray. Very clean crisp flat vector-like stationery ornament, precise minimal geometry, sober academic technical report style, no texture, gradients, shadows or 3D. Absolutely no text, numbers, letters, symbols, robot, charts, formulas, icons, logos or other illustrations. Nothing whatsoever across the central 90% of the canvas. Avoid any large colored areas or borders around the slide. The overlay must remain subtle enough for equations and charts to be the focus.
